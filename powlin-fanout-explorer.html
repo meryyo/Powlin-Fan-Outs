@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Powlin — Fan-Out Explorer</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+
+    .container { max-width: 760px; margin: 0 auto; }
+
+    .header { display: flex; align-items: center; gap: 12px; margin-bottom: 2rem; }
+
+    .logo {
+      width: 36px; height: 36px;
+      background: #6ea001;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-size: 18px; font-weight: 700;
+    }
+
+    .header-text h1 { font-size: 18px; font-weight: 600; color: #1a1a1a; }
+    .header-text p { font-size: 13px; color: #666; }
+
+    .note-box {
+      background: #fbf8ef;
+      border: 1px solid #ecdfb0;
+      color: #6b5a1f;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 12.5px;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+    }
+
+    .steps { display: flex; gap: 6px; margin-bottom: 1.5rem; }
+    .step { flex: 1; height: 3px; border-radius: 2px; background: #ddd; transition: background 0.3s; }
+    .step.active { background: #6ea001; }
+
+    .card {
+      background: white;
+      border: 1px solid #e8e8e4;
+      border-radius: 12px;
+      padding: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-title {
+      font-size: 14px; font-weight: 600; color: #1a1a1a;
+      margin-bottom: 1rem; display: flex; align-items: center; gap: 8px;
+    }
+
+    .card-title i { color: #6ea001; font-size: 16px; }
+
+    .field { margin-bottom: 12px; }
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      font-size: 12px; font-weight: 500; color: #666;
+      display: block; margin-bottom: 5px;
+      text-transform: uppercase; letter-spacing: 0.03em;
+    }
+
+    input, select, textarea {
+      width: 100%; padding: 8px 12px;
+      border: 1px solid #e0e0db; border-radius: 8px;
+      font-size: 14px; font-family: inherit; color: #1a1a1a;
+      background: #fafaf8; outline: none; transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: #6ea001; background: white; }
+
+    textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    button {
+      padding: 10px 20px; border: none; border-radius: 8px;
+      font-size: 14px; font-family: inherit; font-weight: 500; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px; transition: all 0.15s;
+    }
+
+    .btn-primary {
+      background: #6ea001; color: white; width: 100%;
+      justify-content: center; padding: 12px; font-size: 15px;
+    }
+    .btn-primary:hover { background: #5c8500; }
+
+    .btn-secondary {
+      background: white; color: #444; border: 1px solid #e0e0db;
+      flex: 1; justify-content: center;
+    }
+    .btn-secondary:hover { background: #f5f4f0; }
+
+    .btn-warning {
+      background: #fff8e6; color: #854F0B; border: 1px solid #f5d68a;
+      flex: 1; justify-content: center;
+    }
+
+    .error-box {
+      background: #fff0f0; border: 1px solid #ffc5c5; color: #c0392b;
+      padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px;
+    }
+
+    .progress-wrap { background: #eee; border-radius: 4px; height: 6px; overflow: hidden; margin-bottom: 12px; }
+    .progress-bar { height: 100%; background: #6ea001; width: 0%; transition: width 0.3s; }
+    .progress-text { font-size: 13px; color: #666; margin-bottom: 8px; }
+
+    .log {
+      font-size: 11px; color: #666; font-family: 'SF Mono', 'Fira Code', monospace;
+      background: #f5f4f0; border-radius: 8px; padding: 10px 12px;
+      max-height: 200px; overflow-y: auto; line-height: 1.6;
+    }
+
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1rem; }
+    .metric { background: #f5f4f0; border-radius: 10px; padding: 12px; text-align: center; }
+    .metric-label {
+      font-size: 11px; color: #888; margin-bottom: 4px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: 0.03em;
+    }
+    .metric-value { font-size: 22px; font-weight: 600; color: #1a1a1a; }
+
+    .fanout-group { margin-bottom: 18px; }
+    .fanout-group:last-child { margin-bottom: 0; }
+
+    .fanout-prompt {
+      font-size: 13px; font-weight: 600; color: #1a1a1a;
+      padding: 8px 10px; background: #f0f3e8; border-radius: 8px; margin-bottom: 6px;
+    }
+
+    .fanout-row {
+      display: grid;
+      grid-template-columns: 26px 1fr auto;
+      gap: 8px;
+      align-items: start;
+      padding: 7px 4px;
+      border-bottom: 1px solid #f5f4f0;
+      font-size: 13px;
+    }
+    .fanout-row:last-child { border-bottom: none; }
+
+    .fanout-order {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #eef3e2; color: #4a6b00; font-size: 11px; font-weight: 600;
+    }
+
+    .fanout-query { line-height: 1.4; }
+    .fanout-sources { font-size: 11px; color: #999; margin-top: 2px; }
+    .fanout-sources a { color: #6ea001; text-decoration: none; }
+
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: 11px; font-weight: 500; white-space: nowrap;
+    }
+    .badge-ok { background: #d4edda; color: #1e7e34; }
+    .badge-err { background: #f8d7da; color: #721c24; }
+    .badge-na { background: #eee; color: #888; }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 4px; }
+
+    @media (max-width: 500px) {
+      .row2 { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(3, 1fr); }
+      .fanout-row { grid-template-columns: 20px 1fr; }
+      .fanout-row .badge { grid-column: 1 / -1; justify-self: start; margin-top: 4px; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="logo">P</div>
+    <div class="header-text">
+      <h1>Powlin — Fan-Out Explorer</h1>
+      <p>Captura las búsquedas internas de ChatGPT · Inspirado en HotelRank.ai</p>
+    </div>
+  </div>
+
+  <div class="note-box">
+    <i class="ti ti-info-circle"></i> Esta herramienta usa la API nativa de OpenAI (no OpenRouter), porque solo ahí
+    se expone el detalle de cada búsqueda interna (fan-out) que el modelo ejecuta antes de responder.
+    Es independiente del Study Tracker principal.
+  </div>
+
+  <div class="steps" id="steps">
+    <div class="step active" id="s1"></div>
+    <div class="step" id="s2"></div>
+    <div class="step" id="s3"></div>
+  </div>
+
+  <!-- PANEL CONFIG -->
+  <div id="panel-config">
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-key"></i> Conexiones</div>
+      <div class="row2">
+        <div class="field">
+          <label>API key OpenAI</label>
+          <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
+        </div>
+        <div class="field">
+          <label>API key Anthropic (para guardar en Notion)</label>
+          <input type="password" id="ant-key" placeholder="sk-ant-..." autocomplete="off" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-settings"></i> Configuración</div>
+      <div class="row2">
+        <div class="field">
+          <label>Modelo (con razonamiento + web_search)</label>
+          <select id="model">
+            <option value="gpt-5.1" selected>GPT-5.1</option>
+            <option value="gpt-5">GPT-5</option>
+            <option value="gpt-5-mini">GPT-5 mini</option>
+            <option value="o4-mini">o4-mini</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Idioma del prompt</label>
+          <select id="idioma">
+            <option value="ES">Español</option>
+            <option value="EN">English</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-building"></i> Hotel / contexto</div>
+      <div class="row2">
+        <div class="field">
+          <label>Nombre del hotel</label>
+          <input type="text" id="hotel-name" placeholder="Ej: Ritz-Carlton Abama" />
+        </div>
+        <div class="field">
+          <label>Estudio / etiqueta</label>
+          <input type="text" id="estudio" placeholder="Ej: Fan-Out Piloto 1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-message"></i> Prompts</div>
+      <div class="field">
+        <label>Un prompt por línea (cada uno se ejecuta una vez)</label>
+        <textarea id="prompts" style="min-height:100px;" placeholder="mejor hotel boutique en Sevilla centro con encanto&#10;hotel con spa y vistas al mar en Tenerife sur"></textarea>
+      </div>
+    </div>
+
+    <div id="error-msg"></div>
+    <button class="btn-primary" onclick="startExploration()">
+      <i class="ti ti-player-play"></i> Capturar fan-outs
+    </button>
+  </div>
+
+  <!-- PANEL RUNNING -->
+  <div id="panel-running" style="display:none;">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-loader"></i> Consultando a OpenAI...</div>
+      <div class="progress-text" id="progress-text"></div>
+      <div class="progress-wrap"><div class="progress-bar" id="progress-bar"></div></div>
+      <div class="log" id="run-log"></div>
+    </div>
+  </div>
+
+  <!-- PANEL RESULTS -->
+  <div id="panel-results" style="display:none;">
+    <div class="metrics">
+      <div class="metric">
+        <div class="metric-label">Prompts</div>
+        <div class="metric-value" id="m-prompts">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Queries totales</div>
+        <div class="metric-value" id="m-queries">—</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Notion</div>
+        <div class="metric-value" id="m-notion" style="font-size:15px; padding-top:4px;">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-list-search"></i> Fan-outs detectados</div>
+      <div id="fanout-list"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-warning" onclick="retryFailedNotion()" id="retry-btn" style="display:none;">
+        <i class="ti ti-refresh"></i> Reintentar errores Notion
+      </button>
+      <button class="btn-secondary" onclick="resetExploration()">
+        <i class="ti ti-plus"></i> Nueva exploración
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // IMPORTANTE: sustituir por el data_source_id real de la database "Powlin — Fan-Outs" en Notion
+  const NOTION_DS = '64bddecb-b80c-47b4-bfa6-e912e9555b06';
+
+  let allPrompts = []; // [{ prompt, hotel, idioma, model, estudio, queries: [...], notionSaved, notionError }]
+  let openaiKey = '', antKey = '';
+
+  const MODEL_LABELS = {
+    'gpt-5.1': 'GPT-5.1',
+    'gpt-5': 'GPT-5',
+    'gpt-5-mini': 'GPT-5 mini',
+    'o4-mini': 'o4-mini'
+  };
+
+  function setStep(n) {
+    for (let i = 1; i <= 3; i++)
+      document.getElementById('s' + i).classList.toggle('active', i <= n);
+  }
+
+  // Llama a la API nativa de OpenAI (Responses API) con web_search activado
+  // y extrae cada web_search_call como un paso del fan-out.
+  async function callOpenAIFanOut(prompt, model) {
+    const resp = await fetch('https://api.openai.com/v1/responses', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + openaiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: model,
+        tools: [{ type: 'web_search' }],
+        include: ['web_search_call.action.sources'],
+        input: prompt
+      })
+    });
+
+    if (!resp.ok) {
+      const errBody = await resp.json().catch(() => ({}));
+      throw new Error(errBody.error?.message || ('HTTP ' + resp.status));
+    }
+
+    const data = await resp.json();
+    const output = data.output || [];
+
+    const searchCalls = output.filter(item => item.type === 'web_search_call');
+
+    const queries = searchCalls.map((call, idx) => {
+      const action = call.action || {};
+      let queryText = 'no disponible';
+      if (action.type === 'search') {
+        // El campo puede venir como string único o como lista, según versión de API.
+        if (Array.isArray(action.queries) && action.queries.length) {
+          queryText = action.queries.join(' | ');
+        } else if (typeof action.query === 'string' && action.query) {
+          queryText = action.query;
+        }
+      } else if (action.type === 'open_page') {
+        queryText = '(abrió página: ' + (action.url || 'url no disponible') + ')';
+      } else if (action.type === 'find_in_page') {
+        queryText = '(buscó en página: "' + (action.pattern || '') + '")';
+      }
+
+      const sources = Array.isArray(action.sources)
+        ? action.sources.map(s => s.url).filter(Boolean)
+        : [];
+
+      return { order: idx + 1, actionType: action.type || 'desconocido', queryText, sources };
+    });
+
+    // Texto final de la respuesta, por si quieres guardar contexto adicional
+    const messageItem = output.find(item => item.type === 'message');
+    const finalText = messageItem?.content?.[0]?.text || '';
+
+    return { queries, finalText, rawCallCount: searchCalls.length };
+  }
+
+  async function saveFanOutToNotion(entry) {
+    const today = new Date().toISOString().split('T')[0];
+    const nombre = `${entry.hotel} · Fan-Out · "${entry.prompt.substring(0, 40)}..."`;
+
+    const queriesBlock = entry.queries.length
+      ? entry.queries.map(q => `${q.order}. [${q.actionType}] ${q.queryText}${q.sources.length ? ' — fuentes: ' + q.sources.join(', ') : ''}`).join('\n')
+      : 'Sin búsquedas detectadas (el modelo respondió sin activar web_search)';
+
+    const body = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1200,
+      tools: [{ type: 'mcp', name: 'notion-create-pages', server_name: 'notion-mcp', server_url: 'https://mcp.notion.com/mcp' }],
+      messages: [{
+        role: 'user',
+        content: `Create a page in Notion database with data_source_id "${NOTION_DS}" with these properties:
+- Nombre: "${nombre}"
+- Hotel: "${entry.hotel}"
+- Prompt: "${entry.prompt.replace(/"/g, '\\"')}"
+- Modelo: "${entry.modelLabel}"
+- Idioma: "${entry.idioma}"
+- Estudio: "${entry.estudio}"
+- Num queries: ${entry.queries.length}
+- Queries detalle: "${queriesBlock.replace(/"/g, '\\"').replace(/\n/g, ' | ')}"
+- date:Fecha:start: "${today}"
+- date:Fecha:is_datetime: 0`
+      }]
+    };
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': antKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'mcp-client-2025-04-04'
+      },
+      body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    return await resp.json();
+  }
+
+  async function startExploration() {
+    openaiKey = document.getElementById('openai-key').value.trim();
+    antKey = document.getElementById('ant-key').value.trim();
+    const model = document.getElementById('model').value;
+    const modelLabel = MODEL_LABELS[model] || model;
+    const idioma = document.getElementById('idioma').value;
+    const hotel = document.getElementById('hotel-name').value.trim();
+    const estudio = document.getElementById('estudio').value.trim() || 'Sin definir';
+    const promptsRaw = document.getElementById('prompts').value.trim();
+
+    document.getElementById('error-msg').innerHTML = '';
+
+    if (!openaiKey || !antKey || !promptsRaw || !hotel) {
+      document.getElementById('error-msg').innerHTML =
+        '<div class="error-box">Rellena las dos API keys, el nombre del hotel y al menos un prompt.</div>';
+      return;
+    }
+
+    const prompts = promptsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+
+    document.getElementById('panel-config').style.display = 'none';
+    document.getElementById('panel-running').style.display = 'block';
+    setStep(2);
+
+    allPrompts = [];
+    const log = document.getElementById('run-log');
+
+    for (let i = 0; i < prompts.length; i++) {
+      const prompt = prompts[i];
+      document.getElementById('progress-bar').style.width = Math.round(((i) / prompts.length) * 100) + '%';
+      document.getElementById('progress-text').textContent = `Prompt ${i + 1}/${prompts.length}`;
+      log.innerHTML += `<div>&gt; [${i + 1}/${prompts.length}] "${prompt.substring(0, 50)}..."</div>`;
+      log.scrollTop = log.scrollHeight;
+
+      let entry = {
+        prompt, hotel, idioma, estudio, modelLabel,
+        queries: [], finalText: '', notionSaved: false, notionError: null
+      };
+
+      try {
+        const result = await callOpenAIFanOut(prompt, model);
+        entry.queries = result.queries;
+        entry.finalText = result.finalText;
+        log.innerHTML += `<div style="color:#4a6b00">  → ${result.queries.length} búsquedas detectadas</div>`;
+      } catch (e) {
+        log.innerHTML += `<div style="color:#c0392b">  ✗ Error OpenAI: ${e.message}</div>`;
+      }
+
+      try {
+        await saveFanOutToNotion(entry);
+        entry.notionSaved = true;
+        log.innerHTML += `<div style="color:#0056b3">  → Notion ✓</div>`;
+      } catch (e) {
+        entry.notionError = e.message;
+        log.innerHTML += `<div style="color:#856404">  → Notion error</div>`;
+      }
+
+      allPrompts.push(entry);
+      log.scrollTop = log.scrollHeight;
+      await new Promise(res => setTimeout(res, 500));
+    }
+
+    document.getElementById('progress-bar').style.width = '100%';
+    setTimeout(showResults, 500);
+  }
+
+  function showResults() {
+    document.getElementById('panel-running').style.display = 'none';
+    document.getElementById('panel-results').style.display = 'block';
+    setStep(3);
+
+    const totalQueries = allPrompts.reduce((sum, p) => sum + p.queries.length, 0);
+    const notionOk = allPrompts.filter(p => p.notionSaved).length;
+    const notionFail = allPrompts.filter(p => p.notionError).length;
+
+    document.getElementById('m-prompts').textContent = allPrompts.length;
+    document.getElementById('m-queries').textContent = totalQueries;
+    document.getElementById('m-notion').innerHTML = notionFail === 0
+      ? `<span style="color:#1e7e34">${notionOk}/${allPrompts.length} ✓</span>`
+      : `<span style="color:#856404">${notionOk} ok, ${notionFail} err</span>`;
+
+    if (notionFail > 0) document.getElementById('retry-btn').style.display = 'inline-flex';
+
+    const list = document.getElementById('fanout-list');
+    list.innerHTML = '';
+
+    allPrompts.forEach(p => {
+      const group = document.createElement('div');
+      group.className = 'fanout-group';
+
+      let rowsHtml = '';
+      if (p.queries.length === 0) {
+        rowsHtml = `<div style="font-size:12px;color:#999;padding:6px 4px;">Sin búsquedas detectadas — el modelo respondió sin activar web_search.</div>`;
+      } else {
+        p.queries.forEach(q => {
+          const sourcesHtml = q.sources.length
+            ? `<div class="fanout-sources">${q.sources.slice(0, 3).map(u => `<a href="${u}" target="_blank">${u.replace(/^https?:\/\//, '').substring(0, 40)}</a>`).join(' · ')}</div>`
+            : '';
+          rowsHtml += `
+            <div class="fanout-row">
+              <div class="fanout-order">${q.order}</div>
+              <div>
+                <div class="fanout-query">${q.queryText}</div>
+                ${sourcesHtml}
+              </div>
+            </div>`;
+        });
+      }
+
+      group.innerHTML = `
+        <div class="fanout-prompt">${p.prompt}</div>
+        ${rowsHtml}
+        <div style="margin-top:6px;">
+          <span class="badge ${p.notionSaved ? 'badge-ok' : (p.notionError ? 'badge-err' : 'badge-na')}">
+            Notion ${p.notionSaved ? '✓' : (p.notionError ? 'error' : '—')}
+          </span>
+        </div>
+      `;
+      list.appendChild(group);
+    });
+  }
+
+  async function retryFailedNotion() {
+    const failed = allPrompts.filter(p => p.notionError);
+    const btn = document.getElementById('retry-btn');
+    btn.textContent = `Reintentando ${failed.length}...`;
+    for (const p of failed) {
+      try {
+        await saveFanOutToNotion(p);
+        p.notionSaved = true;
+        p.notionError = null;
+      } catch (e) {
+        p.notionError = e.message;
+      }
+    }
+    showResults();
+  }
+
+  function resetExploration() {
+    allPrompts = [];
+    document.getElementById('panel-results').style.display = 'none';
+    document.getElementById('panel-config').style.display = 'block';
+    document.getElementById('fanout-list').innerHTML = '';
+    document.getElementById('run-log').innerHTML = '';
+    document.getElementById('progress-bar').style.width = '0%';
+    document.getElementById('error-msg').innerHTML = '';
+    document.getElementById('retry-btn').style.display = 'none';
+    setStep(1);
+  }
+</script>
+</body>
+</html>
