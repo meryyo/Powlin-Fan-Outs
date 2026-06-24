@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Powlin — Fan-Out Explorer</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌿</text></svg>" />
+  <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -205,15 +205,9 @@
 
     <div class="card">
       <div class="card-title"><i class="ti ti-key"></i> Conexiones</div>
-      <div class="row2">
-        <div class="field">
-          <label>API key OpenAI <span id="openai-saved" style="color:#6ea001;font-size:11px;display:none;">🔒 guardada</span></label>
-          <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
-        </div>
-        <div class="field">
-          <label>API key Anthropic (para guardar en Notion) <span id="ant-saved" style="color:#6ea001;font-size:11px;display:none;">🔒 guardada</span></label>
-          <input type="password" id="ant-key" placeholder="sk-ant-..." autocomplete="off" />
-        </div>
+      <div class="field">
+        <label>API key OpenAI <span id="openai-saved" style="color:#6ea001;font-size:11px;display:none;">🔒 guardada</span></label>
+        <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
       </div>
     </div>
 
@@ -313,31 +307,21 @@
 
 <script>
   // IMPORTANTE: sustituir por el data_source_id real de la database "Powlin — Fan-Outs" en Notion
-  const NOTION_DS = '64bddecb-b80c-47b4-bfa6-e912e9555b06';
+  const PABBLY_WEBHOOK = 'https://connect.pabbly.com/webhook-listener/webhook/IjU3NjYwNTY5MDYzMzA0Mzc1MjZiNTUzNSI_3D_pc/IjU3NjcwNTY5MDYzNTA0MzQ1MjY1NTUzMzUxMzYi_pc';
 
   let allPrompts = []; // [{ prompt, hotel, idioma, model, estudio, queries: [...], notionSaved, notionError }]
-  let openaiKey = '', antKey = '';
+  let openaiKey = '';
 
   // Cargar keys guardadas al iniciar
   window.addEventListener('DOMContentLoaded', () => {
     const savedOpenAI = localStorage.getItem('powlin_openai_key');
-    const savedAnt = localStorage.getItem('powlin_ant_key');
     if (savedOpenAI) {
       document.getElementById('openai-key').value = savedOpenAI;
       document.getElementById('openai-saved').style.display = 'inline';
     }
-    if (savedAnt) {
-      document.getElementById('ant-key').value = savedAnt;
-      document.getElementById('ant-saved').style.display = 'inline';
-    }
-    // Guardar al modificar
     document.getElementById('openai-key').addEventListener('input', function() {
       localStorage.setItem('powlin_openai_key', this.value);
       document.getElementById('openai-saved').style.display = this.value ? 'inline' : 'none';
-    });
-    document.getElementById('ant-key').addEventListener('input', function() {
-      localStorage.setItem('powlin_ant_key', this.value);
-      document.getElementById('ant-saved').style.display = this.value ? 'inline' : 'none';
     });
   });
 
@@ -415,46 +399,30 @@
     const nombre = `${entry.hotel} · Fan-Out · "${entry.prompt.substring(0, 40)}..."`;
 
     const queriesBlock = entry.queries.length
-      ? entry.queries.map(q => `${q.order}. [${q.actionType}] ${q.queryText}${q.sources.length ? ' — fuentes: ' + q.sources.join(', ') : ''}`).join('\n')
-      : 'Sin búsquedas detectadas (el modelo respondió sin activar web_search)';
+      ? entry.queries.map(q => `${q.order}. [${q.actionType}] ${q.queryText}${q.sources.length ? ' — fuentes: ' + q.sources.join(', ') : ''}`).join(' | ')
+      : 'Sin búsquedas detectadas';
 
-    const body = {
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1200,
-      tools: [{ type: 'mcp', name: 'notion-create-pages', server_name: 'notion-mcp', server_url: 'https://mcp.notion.com/mcp' }],
-      messages: [{
-        role: 'user',
-        content: `Create a page in Notion database with data_source_id "${NOTION_DS}" with these properties:
-- Nombre: "${nombre}"
-- Hotel: "${entry.hotel}"
-- Prompt: "${entry.prompt.replace(/"/g, '\\"')}"
-- Modelo: "${entry.modelLabel}"
-- Idioma: "${entry.idioma}"
-- Estudio: "${entry.estudio}"
-- Num queries: ${entry.queries.length}
-- Queries detalle: "${queriesBlock.replace(/"/g, '\\"').replace(/\n/g, ' | ')}"
-- date:Fecha:start: "${today}"
-- date:Fecha:is_datetime: 0`
-      }]
-    };
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    const resp = await fetch(PABBLY_WEBHOOK, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': antKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'mcp-client-2025-04-04'
-      },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre,
+        hotel: entry.hotel,
+        prompt: entry.prompt,
+        modelo: entry.modelLabel,
+        idioma: entry.idioma,
+        estudio: entry.estudio,
+        num_queries: entry.queries.length,
+        queries_detalle: queriesBlock,
+        fecha: today
+      })
     });
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-    return await resp.json();
+    if (!resp.ok) throw new Error('Pabbly ' + resp.status);
   }
 
   async function startExploration() {
     openaiKey = document.getElementById('openai-key').value.trim();
-    antKey = document.getElementById('ant-key').value.trim();
+
     const model = document.getElementById('model').value;
     const modelLabel = MODEL_LABELS[model] || model;
     const idioma = document.getElementById('idioma').value;
@@ -464,9 +432,9 @@
 
     document.getElementById('error-msg').innerHTML = '';
 
-    if (!openaiKey || !antKey || !promptsRaw || !hotel) {
+    if (!openaiKey || !promptsRaw || !hotel) {
       document.getElementById('error-msg').innerHTML =
-        '<div class="error-box">Rellena las dos API keys, el nombre del hotel y al menos un prompt.</div>';
+        '<div class="error-box">Rellena la API key de OpenAI, el nombre del hotel y al menos un prompt.</div>';
       return;
     }
 
