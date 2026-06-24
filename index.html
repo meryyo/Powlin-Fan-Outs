@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Powlin — Fan-Out Explorer</title>
+  <link rel="icon" type="image/png" href="owl.png" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -206,11 +207,11 @@
       <div class="card-title"><i class="ti ti-key"></i> Conexiones</div>
       <div class="row2">
         <div class="field">
-          <label>API key OpenAI</label>
+          <label>API key OpenAI <span id="openai-saved" style="color:#6ea001;font-size:11px;display:none;">🔒 guardada</span></label>
           <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
         </div>
         <div class="field">
-          <label>API key Anthropic (para guardar en Notion)</label>
+          <label>API key Anthropic (para guardar en Notion) <span id="ant-saved" style="color:#6ea001;font-size:11px;display:none;">🔒 guardada</span></label>
           <input type="password" id="ant-key" placeholder="sk-ant-..." autocomplete="off" />
         </div>
       </div>
@@ -316,6 +317,29 @@
 
   let allPrompts = []; // [{ prompt, hotel, idioma, model, estudio, queries: [...], notionSaved, notionError }]
   let openaiKey = '', antKey = '';
+
+  // Cargar keys guardadas al iniciar
+  window.addEventListener('DOMContentLoaded', () => {
+    const savedOpenAI = localStorage.getItem('powlin_openai_key');
+    const savedAnt = localStorage.getItem('powlin_ant_key');
+    if (savedOpenAI) {
+      document.getElementById('openai-key').value = savedOpenAI;
+      document.getElementById('openai-saved').style.display = 'inline';
+    }
+    if (savedAnt) {
+      document.getElementById('ant-key').value = savedAnt;
+      document.getElementById('ant-saved').style.display = 'inline';
+    }
+    // Guardar al modificar
+    document.getElementById('openai-key').addEventListener('input', function() {
+      localStorage.setItem('powlin_openai_key', this.value);
+      document.getElementById('openai-saved').style.display = this.value ? 'inline' : 'none';
+    });
+    document.getElementById('ant-key').addEventListener('input', function() {
+      localStorage.setItem('powlin_ant_key', this.value);
+      document.getElementById('ant-saved').style.display = this.value ? 'inline' : 'none';
+    });
+  });
 
   const MODEL_LABELS = {
     'gpt-5.1': 'GPT-5.1',
