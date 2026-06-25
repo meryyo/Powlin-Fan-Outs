@@ -340,10 +340,10 @@
   // Llama a la API nativa de OpenAI (Responses API) con web_search activado
   // y extrae cada web_search_call como un paso del fan-out.
   async function callOpenAIFanOut(prompt, model) {
-    const resp = await fetch('https://api.openai.com/v1/responses', {
+    const resp = await fetch('https://powlin-fanouts-proxy.corpasmaria.workers.dev/', {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + openaiKey,
+        'X-OpenAI-Key': openaiKey,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
