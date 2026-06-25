@@ -315,10 +315,12 @@
   window.addEventListener('DOMContentLoaded', () => {
     const saved = localStorage.getItem('powlin_openai_key');
     if (saved) {
+      openaiKey = saved;
       document.getElementById('openai-key').value = saved;
       document.getElementById('openai-saved').style.display = 'inline';
     }
     document.getElementById('openai-key').addEventListener('input', function() {
+      openaiKey = this.value;
       localStorage.setItem('powlin_openai_key', this.value);
       document.getElementById('openai-saved').style.display = this.value ? 'inline' : 'none';
     });
