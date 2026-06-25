@@ -205,10 +205,6 @@
 
     <div class="card">
       <div class="card-title"><i class="ti ti-key"></i> Conexiones</div>
-      <div class="field">
-        <label>API key OpenAI <span id="openai-saved" style="color:#6ea001;font-size:11px;display:none;">🔒 guardada</span></label>
-        <input type="password" id="openai-key" placeholder="sk-..." autocomplete="off" />
-      </div>
     </div>
 
     <div class="card">
@@ -309,20 +305,7 @@
   const PABBLY_WEBHOOK = 'https://connect.pabbly.com/webhook-listener/webhook/IjU3NjYwNTY5MDYzMzA0Mzc1MjZiNTUzNSI_3D_pc/IjU3NjcwNTY5MDYzNTA0MzQ1MjY1NTUzMzUxMzYi_pc';
 
   let allPrompts = []; // [{ prompt, hotel, idioma, model, estudio, queries: [...], notionSaved, notionError }]
-  let openaiKey = '';
 
-  // Cargar keys guardadas al iniciar
-  window.addEventListener('DOMContentLoaded', () => {
-    const savedOpenAI = localStorage.getItem('powlin_openai_key');
-    if (savedOpenAI) {
-      document.getElementById('openai-key').value = savedOpenAI;
-      document.getElementById('openai-saved').style.display = 'inline';
-    }
-    document.getElementById('openai-key').addEventListener('input', function() {
-      localStorage.setItem('powlin_openai_key', this.value);
-      document.getElementById('openai-saved').style.display = this.value ? 'inline' : 'none';
-    });
-  });
 
   const MODEL_LABELS = {
     'gpt-4o-mini-search-preview': 'GPT-4o mini Search',
@@ -419,7 +402,7 @@
   }
 
   async function startExploration() {
-    openaiKey = document.getElementById('openai-key').value.trim();
+
 
     const model = document.getElementById('model').value;
     const modelLabel = MODEL_LABELS[model] || model;
@@ -430,9 +413,9 @@
 
     document.getElementById('error-msg').innerHTML = '';
 
-    if (!openaiKey || !promptsRaw || !hotel) {
+    if (!promptsRaw || !hotel) {
       document.getElementById('error-msg').innerHTML =
-        '<div class="error-box">Rellena la API key de OpenAI, el nombre del hotel y al menos un prompt.</div>';
+        '<div class="error-box">Rellena el nombre del hotel y al menos un prompt.</div>';
       return;
     }
 
@@ -454,25 +437,32 @@
 
       let entry = {
         prompt, hotel, idioma, estudio, modelLabel,
-        queries: [], finalText: '', notionSaved: false, notionError: null
+        queries: [], notionSaved: false, notionError: null
       };
 
       try {
-        const result = await callOpenAIFanOut(prompt, model);
-        entry.queries = result.queries;
-        entry.finalText = result.finalText;
-        log.innerHTML += `<div style="color:#4a6b00">  → ${result.queries.length} búsquedas detectadas</div>`;
-      } catch (e) {
-        log.innerHTML += `<div style="color:#c0392b">  ✗ Error OpenAI: ${e.message}</div>`;
-      }
+        // Manda todo a Pabbly — Pabbly llama a OpenAI y guarda en Notion
+        const resp = await fetch(PABBLY_WEBHOOK, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nombre: `${hotel} · Fan-Out · "${prompt.substring(0, 40)}..."`,
+            hotel,
+            prompt,
+            modelo: modelLabel,
+            model,
 
-      try {
-        await saveFanOutToNotion(entry);
+            idioma,
+            estudio,
+            fecha: new Date().toISOString().split('T')[0]
+          })
+        });
+        if (!resp.ok) throw new Error('Pabbly ' + resp.status);
         entry.notionSaved = true;
-        log.innerHTML += `<div style="color:#0056b3">  → Notion ✓</div>`;
+        log.innerHTML += `<div style="color:#0056b3">  → Enviado a Pabbly ✓ (OpenAI + Notion procesando...)</div>`;
       } catch (e) {
         entry.notionError = e.message;
-        log.innerHTML += `<div style="color:#856404">  → Notion error</div>`;
+        log.innerHTML += `<div style="color:#856404">  → Error: ${e.message}</div>`;
       }
 
       allPrompts.push(entry);
