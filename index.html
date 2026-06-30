@@ -409,7 +409,7 @@
     const nombre = `${entry.hotel} · Fan-Out · "${entry.prompt.substring(0, 40)}..."`;
 
     const queriesBlock = entry.queries.length
-      ? entry.queries.map(q => `${q.order}. [${q.actionType}] ${q.queryText}${q.sources.length ? ' — fuentes: ' + q.sources.join(', ') : ''}`).join(' | ')
+      ? entry.queries.map(q => `${q.order}. [${q.actionType}] ${q.queryText}${q.sources.length ? ' — fuentes: ' + q.sources.join(', ') : ''}`).join(' | ').substring(0, 1990)
       : 'Sin búsquedas detectadas';
 
     const resp = await fetch(PABBLY_WEBHOOK, {
