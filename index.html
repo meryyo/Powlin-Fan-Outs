@@ -420,7 +420,7 @@
         estudio: entry.estudio,
         num_queries: entry.queries.length,
         queries_detalle: queriesBlock,
-        respuesta_final: entry.finalText || '',
+        respuesta_final: (entry.finalText || '').substring(0, 1990),
         fecha: today
       })
     });
