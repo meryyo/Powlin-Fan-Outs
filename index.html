@@ -444,7 +444,7 @@
       return;
     }
 
-    const prompts = promptsRaw.split('\n').map(s => s.trim()).filter(Boolean);
+    const prompts = promptsRaw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
 
     document.getElementById('panel-config').style.display = 'none';
     document.getElementById('panel-running').style.display = 'block';
@@ -480,7 +480,7 @@
         log.innerHTML += `<div style="color:#0056b3">  → Notion ✓</div>`;
       } catch (e) {
         entry.notionError = e.message;
-        log.innerHTML += `<div style="color:#856404">  → Notion error</div>`;
+        log.innerHTML += `<div style="color:#856404">  → Notion error: ${e.message}</div>`;
       }
 
       allPrompts.push(entry);
